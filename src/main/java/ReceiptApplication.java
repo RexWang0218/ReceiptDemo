@@ -1,4 +1,5 @@
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 
 public class ReceiptApplication {
@@ -51,11 +52,10 @@ public class ReceiptApplication {
             productAmount = productInfo.getPrice().multiply(productInfo.getQuantity());
             totalAmount = totalAmount.add(productAmount);
 
-            if (productCategoryMap.containsKey(productInfo.getItem()) && location.isExempt(productCategoryMap.get(productInfo.getItem()))) {
+            if (productCategoryMap.containsKey(productInfo.getItem()) && location.isExempt(productCategoryMap.get(productInfo.getItem())))
                 totalTax = totalTax.add(BigDecimal.ZERO);
-            } else {
-                totalTax = totalTax.add(calculateSalesTax(productAmount, BigDecimal.valueOf(location.getTaxRate())));
-            }
+            else
+                totalTax = totalTax.add(calculateSalesTax2(productAmount, location.getTaxRate()));
 
             System.out.println(String.format(formatPattern, productInfo.getItem(), "$" + productInfo.getPrice(), productInfo.getQuantity()));
         }
@@ -75,13 +75,19 @@ public class ReceiptApplication {
         BigDecimal remainder = result[1];
 
         BigDecimal tax;
-        if (remainder.compareTo(BigDecimal.ZERO) > 0) {
+        if (remainder.compareTo(BigDecimal.ZERO) > 0)
             tax = divide.add(BigDecimal.valueOf(1)).multiply(basicUnitBigDecimal);
-        } else {
+        else
             tax = divide.multiply(basicUnitBigDecimal);
-        }
 
         return tax;
+    }
+
+    private static BigDecimal calculateSalesTax2(BigDecimal productAmount, BigDecimal taxRate) {
+        BigDecimal basicUnitBigDecimal = BigDecimal.valueOf(basicUnit);
+        BigDecimal originalTax = productAmount.multiply(taxRate);
+
+        return originalTax.divide(basicUnitBigDecimal).setScale(0, RoundingMode.CEILING).multiply(basicUnitBigDecimal);
     }
 
     enum Location {
@@ -96,8 +102,8 @@ public class ReceiptApplication {
             this.exemptProductCategories = exemptProductCategories;
         }
 
-        public double getTaxRate() {
-            return taxRate;
+        public BigDecimal getTaxRate() {
+            return BigDecimal.valueOf(taxRate);
         }
 
         public boolean isExempt(ProductCategory productCategory) {
